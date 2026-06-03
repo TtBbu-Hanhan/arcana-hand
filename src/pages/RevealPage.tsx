@@ -54,7 +54,16 @@ export function RevealPage() {
       <div className="relative z-10 flex items-end justify-center gap-6 sm:gap-10">
         {SPREAD_SLOTS.map((slot, i) => {
           const placed = drawn.find((d) => d.position === slot.position)
-          const card = placed ? getCard(placed.cardId) : undefined
+          const rawCard = placed ? getCard(placed.cardId) : undefined
+          
+          // ⚠️ 核心修复：在这里动态校准翻牌后正面图的 GitHub Pages 路径，防止翻牌时白屏
+          const card = rawCard ? {
+            ...rawCard,
+            imageUrl: rawCard.imageUrl.startsWith('http')
+              ? rawCard.imageUrl
+              : `${import.meta.env.BASE_URL}${rawCard.imageUrl.replace(/^\//, '')}`
+          } : undefined
+
           const glow = isRitual && glowIdx >= i
           const faceUp = !isRitual && flipped >= i
           return (
