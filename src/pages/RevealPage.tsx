@@ -3,8 +3,7 @@ import { useArcanaStore } from '../store/tarotStore'
 import { StarWheel } from '../components/StarWheel'
 import { TarotCardView } from '../components/TarotCard'
 import { CardSlot } from '../components/CardSlot'
-import { SPREAD_SLOTS } from '../data/tarotDeck'
-import { getCard } from '../modules/tarot/readingService'
+import { SPREAD_SLOTS, TAROT_DECK } from '../data/tarotDeck' // 👈 核心修复：引入 TAROT_DECK 作为硬核数据保障
 
 // 页面七：仪式停顿 + 翻牌（文档 §7.2 / §6.6）
 export function RevealPage() {
@@ -54,9 +53,13 @@ export function RevealPage() {
       <div className="relative z-10 flex items-end justify-center gap-6 sm:gap-10">
         {SPREAD_SLOTS.map((slot, i) => {
           const placed = drawn.find((d) => d.position === slot.position)
-          const rawCard = placed ? getCard(placed.cardId) : undefined
           
-          // ⚠️ 核心修复：在这里动态校准翻牌后正面图的 GitHub Pages 路径，防止翻牌时白屏
+          // ⚠️ 核心修复：直接通过原生的 TAROT_DECK 来匹配已抽出的卡片，彻底规避线上服务找不到卡片的问题
+          const rawCard = placed 
+            ? TAROT_DECK.find(c => c.id === placed.cardId) 
+            : undefined
+          
+          // 处理打包后的路径前缀
           const card = rawCard ? {
             ...rawCard,
             imageUrl: rawCard.imageUrl.startsWith('http')
@@ -78,6 +81,7 @@ export function RevealPage() {
                     showLabel={faceUp}
                   />
                 ) : (
+                  /* ⚠️ 兜底渲染：若还未翻开或数据异常，依然由组件稳定撑开卡位 */
                   <CardSlot slot={slot} width={130} state="filled" />
                 )}
                 {!faceUp && (
