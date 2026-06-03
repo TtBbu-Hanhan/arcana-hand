@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E9CE8C"/>
+      <stop offset="100%" stop-color="#8A6A32"/>
+    </linearGradient>
+  </defs>
+  <!-- 半透明金色线条，简化卡背图腾，不填充 -->
+  <rect x="8" y="8" width="284" height="434" rx="12" fill="none" stroke="url(#gold)" stroke-width="1.6" stroke-dasharray="6 6" opacity="0.55"/>
+  <g transform="translate(150 225)" opacity="0.5">
+    <circle r="92" fill="none" stroke="url(#gold)" stroke-width="0.8"/>
+    <path d="M0,-78 L18,-18 L78,0 L18,18 L0,78 L-18,18 L-78,0 L-18,-18 Z" fill="none" stroke="url(#gold)" stroke-width="1"/>
+    <path d="M0,-30 L26,18 L-26,18 Z" fill="none" stroke="url(#gold)" stroke-width="1.1"/>
+    <path d="M-20,3 Q0,-13 20,3 Q0,19 -20,3 Z" fill="none" stroke="url(#gold)" stroke-width="1.1"/>
+    <circle cx="0" cy="3" r="6" fill="none" stroke="url(#gold)" stroke-width="1.1"/>
+  </g>
+</svg>

@@ -1,0 +1,132 @@
+@import 'tailwindcss';
+
+/* ===== Arcana Hand 设计令牌（文档 §12.2 色彩规范）===== */
+@theme {
+  --color-bg-purple: #120a1f;
+  --color-bg-blue: #070b1a;
+  --color-gold: #d6b56d;
+  --color-gold-dark: #8a6a32;
+  --color-gold-light: #e9ce8c;
+  --color-ivory: #f4ebd0;
+  --color-grey-purple: #9c8fb4;
+  --color-warn-red: #7a2e3a;
+  --color-star-blue: #2a3a6a;
+
+  --font-display-en: 'Cinzel', 'Cormorant Garamond', serif;
+  --font-display-zh: 'Noto Serif SC', serif;
+  --font-body: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 18%, #1b0f33 0%, var(--color-bg-purple) 45%, var(--color-bg-blue) 100%);
+  color: var(--color-ivory);
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 衬线标题工具类 */
+.font-serif-en {
+  font-family: var(--font-display-en);
+  letter-spacing: 0.06em;
+}
+.font-serif-zh {
+  font-family: var(--font-display-zh);
+  letter-spacing: 0.08em;
+}
+
+/* 金色文字渐变 */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold) 50%, var(--color-gold-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ===== 动效（文档 §12.4）===== */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes spin-reverse-slow {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 6px var(--color-gold)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 18px var(--color-gold)); }
+}
+@keyframes card-jitter {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-1.4deg); }
+  75% { transform: rotate(1.4deg); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scroll-unfurl {
+  from { opacity: 0; transform: scaleY(0.6); transform-origin: top; }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+.anim-float { animation: float-soft 4.5s ease-in-out infinite; }
+.anim-spin-slow { animation: spin-slow 60s linear infinite; }
+.anim-spin-reverse { animation: spin-reverse-slow 90s linear infinite; }
+.anim-pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+.anim-jitter { animation: card-jitter 0.4s ease-in-out infinite; }
+.anim-fade-up { animation: fade-in-up 0.7s ease-out both; }
+.anim-unfurl { animation: scroll-unfurl 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* 卡牌发光晕 */
+.glow-gold {
+  box-shadow:
+    0 0 14px rgba(214, 181, 109, 0.55),
+    0 0 34px rgba(214, 181, 109, 0.35),
+    0 6px 20px rgba(0, 0, 0, 0.6);
+}
+.glow-gold-strong {
+  box-shadow:
+    0 0 22px rgba(233, 206, 140, 0.8),
+    0 0 50px rgba(214, 181, 109, 0.55),
+    0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* 输入框、按钮过渡 */
+.transition-arcana {
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 滚动条隐藏（沉浸式） */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(214, 181, 109, 0.3);
+  border-radius: 4px;
+}
+
+/* 3D 透视容器 */
+.scene-3d { perspective: 1600px; }
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }

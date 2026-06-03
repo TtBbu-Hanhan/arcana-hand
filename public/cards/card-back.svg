@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#241046"/>
+      <stop offset="55%" stop-color="#120A1F"/>
+      <stop offset="100%" stop-color="#070B1A"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E9CE8C"/>
+      <stop offset="45%" stop-color="#D6B56D"/>
+      <stop offset="100%" stop-color="#8A6A32"/>
+    </linearGradient>
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F4EBD0"/>
+      <stop offset="40%" stop-color="#D6B56D"/>
+      <stop offset="100%" stop-color="#8A6A32"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.1"/>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect x="0" y="0" width="300" height="450" rx="16" fill="url(#bg)"/>
+
+  <!-- 外层金色细边框 -->
+  <rect x="8" y="8" width="284" height="434" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.2"/>
+  <rect x="15" y="15" width="270" height="420" rx="9" fill="none" stroke="url(#gold)" stroke-width="0.8" opacity="0.55"/>
+
+  <!-- 星尘点缀 -->
+  <g fill="#F4EBD0" opacity="0.65">
+    <circle cx="46" cy="60" r="1.1"/><circle cx="255" cy="78" r="0.9"/>
+    <circle cx="70" cy="380" r="1.0"/><circle cx="232" cy="360" r="1.2"/>
+    <circle cx="150" cy="36" r="1.0"/><circle cx="150" cy="416" r="1.0"/>
+    <circle cx="38" cy="220" r="0.8"/><circle cx="262" cy="230" r="0.8"/>
+    <circle cx="92" cy="110" r="0.7"/><circle cx="210" cy="120" r="0.7"/>
+  </g>
+
+  <g transform="translate(150 225)">
+    <!-- 占星刻度外环 -->
+    <circle r="118" fill="none" stroke="url(#gold)" stroke-width="1" opacity="0.5"/>
+    <circle r="104" fill="none" stroke="url(#gold)" stroke-width="0.6" opacity="0.35"/>
+    <g stroke="url(#gold)" stroke-width="1" opacity="0.6">
+      <!-- 12 道刻度 -->
+      <line x1="0" y1="-118" x2="0" y2="-104"/>
+      <line x1="59" y1="-102.2" x2="52" y2="-90.1" transform="rotate(0)"/>
+    </g>
+    <g stroke="url(#gold)" stroke-width="0.9" opacity="0.55">
+      <line x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(30)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(60)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(90)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(120)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(150)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(180)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(210)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(240)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(270)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(300)" x1="0" y1="-118" x2="0" y2="-106"/>
+      <line transform="rotate(330)" x1="0" y1="-118" x2="0" y2="-106"/>
+    </g>
+
+    <!-- 对称藤蔓 / 星盘纹样：八角星 -->
+    <g stroke="url(#gold)" stroke-width="1.1" fill="none" opacity="0.85" filter="url(#soft)">
+      <path d="M0,-96 L22,-22 L96,0 L22,22 L0,96 L-22,22 L-96,0 L-22,-22 Z"/>
+      <path d="M0,-96 L22,-22 L96,0 L22,22 L0,96 L-22,22 L-96,0 L-22,-22 Z" transform="rotate(45)" opacity="0.55"/>
+    </g>
+
+    <!-- 月相：上弦、满月、下弦 -->
+    <g fill="url(#gold)" opacity="0.9">
+      <circle cx="0" cy="-74" r="7" fill="none" stroke="url(#gold)" stroke-width="1.4"/>
+      <path d="M-66,40 a8,8 0 1,1 0,-0.1 a6,10 0 1,0 0,0.1 Z"/>
+      <path d="M66,40 a8,8 0 1,0 0,-0.1 a6,10 0 1,1 0,0.1 Z"/>
+    </g>
+
+    <!-- 中央：全知之眼图腾 -->
+    <g>
+      <circle r="46" fill="#0d0820" stroke="url(#gold)" stroke-width="1.6"/>
+      <!-- 三角框 -->
+      <path d="M0,-38 L34,24 L-34,24 Z" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity="0.9"/>
+      <!-- 眼睛 -->
+      <path d="M-26,4 Q0,-18 26,4 Q0,26 -26,4 Z" fill="#0d0820" stroke="url(#gold)" stroke-width="1.6"/>
+      <circle cx="0" cy="4" r="10" fill="url(#eyeGlow)"/>
+      <circle cx="0" cy="4" r="4.6" fill="#070B1A"/>
+      <circle cx="2.2" cy="1.6" r="1.5" fill="#F4EBD0"/>
+      <!-- 眼周星芒 -->
+      <g stroke="url(#gold)" stroke-width="0.9" opacity="0.8">
+        <line x1="0" y1="-46" x2="0" y2="-54"/>
+      </g>
+    </g>
+  </g>
+</svg>
