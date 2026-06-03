@@ -10,8 +10,16 @@ export function LandingPage() {
   const goToQuestion = useArcanaStore((s) => s.jumpTo)
   const [showHelp, setShowHelp] = useState(false)
 
-  // 取三张牌做漂浮主视觉
-  const floatCards = [TAROT_DECK[10], TAROT_DECK[17], TAROT_DECK[0]]
+  // ⚠️ 核心修复：确保首页漂浮的卡片数据路径与结果页面的修复逻辑完全一致
+  const floatCards = [TAROT_DECK[10], TAROT_DECK[17], TAROT_DECK[0]].map(card => {
+    if (!card) return undefined
+    return {
+      ...card,
+      imageUrl: card.imageUrl.startsWith('http')
+        ? card.imageUrl
+        : `${import.meta.env.BASE_URL}${card.imageUrl.replace(/^\//, '')}`
+    }
+  })
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center px-6">
@@ -22,12 +30,16 @@ export function LandingPage() {
 
       {/* 漂浮塔罗牌 */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="anim-float absolute left-[14%] top-[24%]" style={{ animationDelay: '0s' }}>
-          <TarotCardView card={floatCards[0]} faceUp orientation="upright" width={120} style={{ transform: 'rotate(-12deg)' }} />
-        </div>
-        <div className="anim-float absolute right-[15%] top-[20%]" style={{ animationDelay: '1.2s' }}>
-          <TarotCardView card={floatCards[1]} faceUp orientation="upright" width={120} style={{ transform: 'rotate(10deg)' }} />
-        </div>
+        {floatCards[0] && (
+          <div className="anim-float absolute left-[14%] top-[24%]" style={{ animationDelay: '0s' }}>
+            <TarotCardView card={floatCards[0]} faceUp orientation="upright" width={120} style={{ transform: 'rotate(-12deg)' }} />
+          </div>
+        )}
+        {floatCards[1] && (
+          <div className="anim-float absolute right-[15%] top-[20%]" style={{ animationDelay: '1.2s' }}>
+            <TarotCardView card={floatCards[1]} faceUp orientation="upright" width={120} style={{ transform: 'rotate(10deg)' }} />
+          </div>
+        )}
         <div className="anim-float absolute bottom-[12%] left-1/2 -translate-x-1/2" style={{ animationDelay: '0.6s' }}>
           <TarotCardView width={120} style={{ transform: 'rotate(3deg)' }} />
         </div>

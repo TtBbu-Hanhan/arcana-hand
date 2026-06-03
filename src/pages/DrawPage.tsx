@@ -175,7 +175,15 @@ export function DrawPage() {
     else cardEls.current.delete(id)
   }
 
-  const selectedCard = selectedId ? getCard(selectedId) : undefined
+  const rawSelectedCard = selectedId ? getCard(selectedId) : undefined
+  // ⚠️ 核心修复：给拖拽中的悬浮卡正面图做路径防错隔离
+  const selectedCard = rawSelectedCard ? {
+    ...rawSelectedCard,
+    imageUrl: rawSelectedCard.imageUrl.startsWith('http')
+      ? rawSelectedCard.imageUrl
+      : `${import.meta.env.BASE_URL}${rawSelectedCard.imageUrl.replace(/^\//, '')}`
+  } : undefined
+
   const currentSlot = SPREAD_SLOTS[slotIndex] ?? SPREAD_SLOTS[0]
 
   const promptText =
@@ -226,7 +234,16 @@ export function DrawPage() {
       <div className="flex items-end justify-center gap-6 px-6 sm:gap-10">
         {SPREAD_SLOTS.map((slot, i) => {
           const placed = drawn.find((d) => d.position === slot.position)
-          const placedCard = placed ? getCard(placed.cardId) : undefined
+          const rawPlacedCard = placed ? getCard(placed.cardId) : undefined
+          
+          // ⚠️ 核心修复：给放好在卡位里的卡也补齐路径，确保能安全渲染
+          const placedCard = rawPlacedCard ? {
+            ...rawPlacedCard,
+            imageUrl: rawPlacedCard.imageUrl.startsWith('http')
+              ? rawPlacedCard.imageUrl
+              : `${import.meta.env.BASE_URL}${rawPlacedCard.imageUrl.replace(/^\//, '')}`
+          } : undefined
+
           const isCurrent = i === slotIndex
           return (
             <div key={slot.position} ref={isCurrent ? slotEl : undefined}>
@@ -240,7 +257,7 @@ export function DrawPage() {
                   <div className="anim-fade-up absolute inset-0">
                     <TarotCardView
                       card={placedCard}
-                      faceUp={false}
+                      faceUp={false} // 保持卡背朝下，但路径已被上方的变数保护不会报错白屏
                       orientation={placed.orientation}
                       width={CARD_W}
                     />
