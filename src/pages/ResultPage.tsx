@@ -51,24 +51,34 @@ export function ResultPage() {
 
         {/* 2. 三张牌 */}
         <div className="mt-10 flex flex-wrap items-start justify-center gap-8">
-          {ordered.map(({ drawn, card }, i) => (
-            <div
-              key={drawn.position}
-              className="anim-fade-up flex flex-col items-center"
-              style={{ animationDelay: `${i * 0.15}s` }}
-            >
-              <span className="font-serif-zh mb-3 rounded-full border border-gold/40 px-4 py-1 text-sm text-gold">
-                {positionLabel(drawn.position)}
-              </span>
-              <TarotCardView
-                card={card}
-                faceUp
-                orientation={drawn.orientation}
-                width={150}
-                showLabel
-              />
-            </div>
-          ))}
+          {ordered.map(({ drawn, card }, i) => {
+            // ⚠️ 核心修复：处理卡牌正面图在 GitHub Pages 子目录下的 404 问题
+            const processedCard = {
+              ...card,
+              imageUrl: card.imageUrl.startsWith('http')
+                ? card.imageUrl
+                : `${import.meta.env.BASE_URL}${card.imageUrl.replace(/^\//, '')}`
+            }
+
+            return (
+              <div
+                key={drawn.position}
+                className="anim-fade-up flex flex-col items-center"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              >
+                <span className="font-serif-zh mb-3 rounded-full border border-gold/40 px-4 py-1 text-sm text-gold">
+                  {positionLabel(drawn.position)}
+                </span>
+                <TarotCardView
+                  card={processedCard} // 👈 传入处理过正确路径的数据
+                  faceUp
+                  orientation={drawn.orientation}
+                  width={150}
+                  showLabel
+                />
+              </div>
+            )
+          })}
         </div>
 
         {/* 3. 单牌解读 */}

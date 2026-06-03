@@ -32,7 +32,8 @@ export function CardSlot({ slot, width = 150, state, highlight = false, children
         />
         {state !== 'filled' && (
           <img
-            src="/cards/slot-totem.svg"
+            /* ⚠️ 核心修改：動態注入打包後的 base 路徑 */
+            src={`${import.meta.env.BASE_URL}cards/slot-totem.svg`}
             alt=""
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full p-1 transition-arcana ${

@@ -62,7 +62,8 @@ export function TarotCardView({
           style={{ transform: 'rotateY(0deg)' }}
         >
           <img
-            src="/cards/card-back.svg"
+            /* ⚠️ 核心修改：动态注入打包后的 base 路径，修复线上卡背 404 错误 */
+            src={`${import.meta.env.BASE_URL}cards/card-back.svg`}
             alt="卡背"
             className="h-full w-full object-cover"
             draggable={false}
