@@ -34,6 +34,8 @@ jobs:
         run: npm install
 
       - name: Build
+        env:
+          VITE_AI_API_KEY: ${{ secrets.VITE_AI_API_KEY }}
         run: npm run build
 
       - name: Upload artifact
