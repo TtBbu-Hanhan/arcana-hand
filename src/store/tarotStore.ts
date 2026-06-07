@@ -43,6 +43,7 @@ type ArcanaState = {
   drawn: DrawnCard[] // 已放入卡位的牌（按放入顺序）
 
   result: ReadingResult | null
+  isGenerating: boolean // 👈 新增：标记 AI 是否正在冥想生成解答
 
   // ---- actions ----
   setQuestion: (q: string) => void
@@ -55,7 +56,7 @@ type ArcanaState = {
   drawCardToCurrentSlot: (deckIndex: number) => Orientation | null
   startRitual: () => void
   startReveal: () => void
-  finishReveal: () => void
+  finishReveal: () => Promise<void> // 👈 修改：升级为异步函数
   goToResult: () => void
   reset: () => void
   jumpTo: (phase: Phase) => void
@@ -73,6 +74,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
   deck: shuffleDeck(),
   drawn: [],
   result: null,
+  isGenerating: false, // 👈 初始化状态
 
   setQuestion: (q) => set({ question: q }),
 
@@ -140,10 +142,80 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
 
   startReveal: () => set({ phase: 'REVEALING' }),
 
-  finishReveal: () => {
+  // 🛠️ 核心修改：接入专属塔罗占卜师 AI 接口
+  finishReveal: async () => {
     const { question, drawn } = get()
-    const result = buildReading(question, drawn)
-    set({ result, phase: 'READING' })
+    
+    // 1. 进入加载状态，提升仪式感
+    set({ isGenerating: true, phase: 'READING' })
+
+    try {
+      // 组装牌面文本信息发给 AI
+      const cardsText = drawn.map(d => {
+        const pos = d.position === 'situation' ? '【现状】' : d.position === 'obstacle' ? '【阻碍】' : '【建议】'
+        return `${pos}: ${d.cardId} (${d.orientation === 'upright' ? '正位' : '逆位'})`
+      }).join('\n')
+
+      // 2. 发起专属占卜 API 请求
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}` // 自动读取打包环境变量
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', // 高性价比，且角色扮演极为契合
+          response_format: { type: "json_object" }, // 强制模型输出标准的 JSON
+          messages: [
+            {
+              role: 'system',
+              content: `你是一位隐居于星空深处的灵视塔罗占卜师。你精通神秘学与古典塔罗牌意。
+              你的说话风格神秘、优雅、充满仪式感，善于运用富有哲理和疗愈感的词汇（如：星辰的轨迹、能量的流动、命运的低语）。
+              你将根据用户提供的问题和抽出的三张牌（现状、阻碍、建议），给出一段充满启发性的深度综合解读。
+              
+              请严格按照以下 JSON 格式回复，不要包含任何多余的解释文字：
+              {
+                "summary": "这里填写对整个牌阵的综合深度解读，字数在300字左右，语气要充满神秘占卜师的仪式感和灵性低语...",
+                "finalAdvice": "这里填写你给求问者的具体行动指引与避坑建议，语气要坚定且富有疗愈感..."
+              }`
+            },
+            {
+              role: 'user',
+              content: `求问者的问题："${question || '未明确具体提问，求问近期综合启示'}"\n\n抽出的牌阵数据：\n${cardsText}`
+            }
+          ]
+        })
+      })
+
+      if (!response.ok) throw new Error('API 灵视通道连接失败')
+
+      const data = await response.json()
+      const aiResult = JSON.parse(data.choices[0].message.content)
+
+      // 3. 成功拿到大仙的专属解答，安全送入结果页
+      set({ 
+        result: {
+          question,
+          spread: 'situation_obstacle_advice',
+          cards: drawn,
+          summary: aiResult.summary,
+          finalAdvice: aiResult.finalAdvice
+        }, 
+        phase: 'RESULT',
+        isGenerating: false
+      })
+
+    } catch (error) {
+      console.error("💡 灵视连接意外中断，正在为您激活本地数据兜底保护:", error)
+      
+      // 4. 兜底策略：如果遇到断网或密钥额度不足，一键无缝切回本地生成的解读，保证体验不中断！
+      const fallback = buildReading(question, drawn)
+      set({ 
+        result: fallback, 
+        phase: 'RESULT',
+        isGenerating: false 
+      })
+    }
   },
 
   goToResult: () => set({ phase: 'RESULT' }),
@@ -158,6 +230,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
       deck: shuffleDeck(),
       drawn: [],
       result: null,
+      isGenerating: false,
     }),
 
   jumpTo: (phase) => set({ phase }),
