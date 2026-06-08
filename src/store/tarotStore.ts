@@ -139,7 +139,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
       }).join('\n')
 
       // ⚠️ 核心自适应逻辑：本地走 Vite 代理路由，线上直连灵眸官方域名
-     // ⚠️ 乾淨的終極寫法：本地走 Vite 代理，線上直接乾淨直連靈眸官方域名（不再添加任何第三方跨域前綴）
+      // ⚠️ 终极修复：本地走完美流畅的 Vite 代理；线上直接干净直连灵眸官方域名，彻底告别公共中转
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
 
@@ -149,13 +149,16 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`
         },
-      
         body: JSON.stringify({
           model: 'deepseek-v4-flash',
           response_format: { type: "json_object" }, 
           messages: [
             {
               role: 'system',
+              content: `你是一位隐居于星空深处的灵视塔罗占卜师...` // 保持你的提示词不变
+            },
+            {
+              role: 'user',
               content: `你是一位隐居于星空深处的灵视塔罗占卜师。你精通神秘学与古典塔罗牌意。
               你的说话风格神秘、优雅、充满仪式感，善于运用富有哲理和疗愈感的词汇（如：星辰的轨迹、能量的流动、命运的低语）。
               
@@ -168,10 +171,6 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
                 "summary": "这里填写你对这位求问者问题的专属深度综合解答，字数在300字左右，必须充满神秘占卜师一针见血又富有疗愈感的对话语气...",
                 "finalAdvice": "这里填写你针对他的问题，给他的具体行动指引与避坑建议..."
               }`
-            },
-            {
-              role: 'user',
-              content: `求问者的问题："${question || '未明确具体提问，求问近期综合启示'}"\n\n抽出的牌阵数据：\n${cardsText}`
             }
           ]
         })
