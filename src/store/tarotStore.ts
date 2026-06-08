@@ -138,19 +138,17 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
         return `${pos}: ${d.cardId} (${d.orientation === 'upright' ? '正位' : '逆位'})`
       }).join('\n')
 
-      // ⚠️ 核心判定：本地走 Vite 代理，线上彻底抛弃公共代理，选择直连灵眸中转站
-      // ⚠️ 备用方案：如果灵眸后台配不了白名单，线上改走更稳定的备用代理
-      // ⚠️ 終極自適應：本地走完美流畅的 Vite 代理；線上走不需要點擊激活、100% 穩定的 allorigins 跨域橋樑
+      // ⚠️ 终极真理回归：既然灵眸官方支持跨域直连，我们本地走代理，线上走100%纯净的官方直连，且删掉所有干扰Headers
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const apiUrl = isLocal 
-        ? '/lmu-api/v1/chat/completions' 
-        : 'https://api.allorigins.win/raw?url=https://api.lmuai.com/v1/chat/completions' // 👈 線上強制加上這個備用前綴
+      const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // ⚠️ 线上直连时，这里只会安全读取你在 GitHub Secrets 里配置的 VITE_AI_API_KEY
           'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`
+          // ❌ 严禁在这里加任何 X-Requested-With 或是其他不规范的请求头，防止触发灵眸的安全拦截！
         },
         body: JSON.stringify({
           model: 'deepseek-v4-flash',
@@ -167,13 +165,12 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
               
               请严格按照以下 JSON 格式回复，不要包含任何多余的解释文字：
               {
-                "summary": "这里填写你对这位求问者问题的专属深度综合解答，字数在300字左右，必须充满神秘占卜师一针见血又富有疗愈感的对话语气...",
+                "summary": "这里填写你对这位求问者问题的专属深度综合解答，字数在300字左右，必须充满神秘占卜师一针见写又富有疗愈感的对话语气...",
                 "finalAdvice": "这里填写你针对他的问题，给他的具体行动指引与避坑建议..."
               }`
             },
             {
               role: 'user',
-              // ✅ 修复成功：在这里明确地将变量引用补齐了
               content: `求问者的问题："${question || '未明确具体提问，求问近期综合启示'}"\n\n抽出的牌阵数据：\n${cardsText}`
             }
           ]
