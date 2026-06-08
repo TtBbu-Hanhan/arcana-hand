@@ -139,18 +139,15 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
       }).join('\n')
 
       // ⚠️ 核心自适应逻辑：本地走 Vite 代理路由，线上直连灵眸官方域名
-      // ⚠️ 终极修复：本地依然走完美流畅的 Vite 代理；线上由于灵眸拦截，我们直接给线上地址拼上跨域解封前缀！
+     // ⚠️ 乾淨的終極寫法：本地走 Vite 代理，線上直接乾淨直連靈眸官方域名（不再添加任何第三方跨域前綴）
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const apiUrl = isLocal 
-        ? '/lmu-api/v1/chat/completions' 
-        : 'https://cors-anywhere.herokuapp.com/https://api.lmuai.com/v1/chat/completions' // 👈 线上地址前加上这个
+      const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`,
-          'X-Requested-With': 'XMLHttpRequest' // 👈 顺便在 headers 里面加上这行，防止有些代理服务器拦截
+          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`
         },
       
         body: JSON.stringify({
