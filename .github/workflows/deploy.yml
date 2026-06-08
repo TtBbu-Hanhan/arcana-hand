@@ -36,7 +36,8 @@ jobs:
       - name: Build
         env:
           VITE_AI_API_KEY: ${{ secrets.VITE_AI_API_KEY }}
-        run: npm run build
+        # ⚠️ 终极修复：在打包命令后面显式地加上你的线上仓库路径参数，强制覆盖所有打包缓存
+        run: npm run build -- --base=/arcana-hand/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
