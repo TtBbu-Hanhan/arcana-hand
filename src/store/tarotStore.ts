@@ -140,10 +140,11 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
 
       // ⚠️ 核心判定：本地走 Vite 代理，线上彻底抛弃公共代理，选择直连灵眸中转站
       // ⚠️ 备用方案：如果灵眸后台配不了白名单，线上改走更稳定的备用代理
+      // ⚠️ 終極自適應：本地走完美流畅的 Vite 代理；線上走不需要點擊激活、100% 穩定的 allorigins 跨域橋樑
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isLocal 
         ? '/lmu-api/v1/chat/completions' 
-        : 'https://api.allorigins.win/raw?url=https://api.lmuai.com/v1/chat/completions' // 👈 换成 allorigins 备用前缀
+        : 'https://api.allorigins.win/raw?url=https://api.lmuai.com/v1/chat/completions' // 👈 線上強制加上這個備用前綴
 
       const response = await fetch(apiUrl, {
         method: 'POST',
