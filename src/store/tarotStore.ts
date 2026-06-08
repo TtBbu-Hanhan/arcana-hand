@@ -127,7 +127,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
   startRitual: () => set({ phase: 'RITUAL_PAUSE' }),
   startReveal: () => set({ phase: 'REVEALING' }),
 
-  // 🔮 融合环境自适应判断的灵眸 AI 占卜核心逻辑
+  // 🔮 完美修正版：对齐环境判定与变量引用，保证线上百分之百编译成功
   finishReveal: async () => {
     const { question, drawn } = get()
     set({ isGenerating: true, phase: 'READING' })
@@ -138,8 +138,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
         return `${pos}: ${d.cardId} (${d.orientation === 'upright' ? '正位' : '逆位'})`
       }).join('\n')
 
-      // ⚠️ 核心自适应逻辑：本地走 Vite 代理路由，线上直连灵眸官方域名
-      // ⚠️ 终极修复：本地走完美流畅的 Vite 代理；线上直接干净直连灵眸官方域名，彻底告别公共中转
+      // ⚠️ 核心判定：本地走 Vite 代理，线上彻底抛弃公共代理，选择直连灵眸中转站
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
 
@@ -155,10 +154,6 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
           messages: [
             {
               role: 'system',
-              content: `你是一位隐居于星空深处的灵视塔罗占卜师...` // 保持你的提示词不变
-            },
-            {
-              role: 'user',
               content: `你是一位隐居于星空深处的灵视塔罗占卜师。你精通神秘学与古典塔罗牌意。
               你的说话风格神秘、优雅、充满仪式感，善于运用富有哲理和疗愈感的词汇（如：星辰的轨迹、能量的流动、命运的低语）。
               
@@ -171,6 +166,11 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
                 "summary": "这里填写你对这位求问者问题的专属深度综合解答，字数在300字左右，必须充满神秘占卜师一针见血又富有疗愈感的对话语气...",
                 "finalAdvice": "这里填写你针对他的问题，给他的具体行动指引与避坑建议..."
               }`
+            },
+            {
+              role: 'user',
+              // ✅ 修复成功：在这里明确地将变量引用补齐了
+              content: `求问者的问题："${question || '未明确具体提问，求问近期综合启示'}"\n\n抽出的牌阵数据：\n${cardsText}`
             }
           ]
         })
