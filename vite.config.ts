@@ -1,13 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from '@tailwindcss/vite' // 👈 核心修復：把昨天被誤刪的 Tailwind 重新請回來！
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
-  base: '/arcana-hand/', // 👈 核心：在这里加上这行，注意后面有逗号
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss()], // 👈 核心修復：確保兩個插件都在運行
   server: {
-    port: 5173,
-    host: true,
-  },
+    proxy: {
+      // 🔮 靈眸專屬跨域代理通道
+      '/lmu-api': {
+        target: 'https://api.lmuai.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/lmu-api/, '')
+      }
+    }
+  }
 })

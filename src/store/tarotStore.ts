@@ -127,7 +127,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
   startRitual: () => set({ phase: 'RITUAL_PAUSE' }),
   startReveal: () => set({ phase: 'REVEALING' }),
 
-  // 🔮 完美融合后的 DeepSeek 异步灵视核心函数
+  // 🔮 融合环境自适应判断的灵眸 AI 占卜核心逻辑
   finishReveal: async () => {
     const { question, drawn } = get()
     set({ isGenerating: true, phase: 'READING' })
@@ -138,17 +138,19 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
         return `${pos}: ${d.cardId} (${d.orientation === 'upright' ? '正位' : '逆位'})`
       }).join('\n')
 
-      // 精准对接官方 cURL 路径并注入免费跨域代理前缀
-      const response = await fetch('https://cors-anywhere.herokuapp.com/https://api.deepseek.com/chat/completions', {
+      // ⚠️ 核心自适应逻辑：本地走 Vite 代理路由，线上直连灵眸官方域名
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`,
-          'X-Requested-With': 'XMLHttpRequest'
+          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`
         },
         body: JSON.stringify({
           model: 'deepseek-v4-flash',
-          response_format: { type: "json_object" },
+          response_format: { type: "json_object" }, 
           messages: [
             {
               role: 'system',
@@ -173,7 +175,7 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
         })
       })
 
-      if (!response.ok) throw new Error('DeepSeek 灵视通道请求未成功')
+      if (!response.ok) throw new Error('灵眸通道请求未成功')
 
       const data = await response.json()
       const aiResult = JSON.parse(data.choices[0].message.content)
