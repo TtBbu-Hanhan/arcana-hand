@@ -6,15 +6,12 @@ import {
 } from '@mediapipe/tasks-vision'
 import { isOpenPalm, isPinching, pinchPoint, palmCenter } from './gestureUtils'
 
-// 本地托管 WASM 与模型，避免依赖 storage.googleapis.com / CDN（国内网络常被阻断）。
-// 用 BASE_URL 前缀以适配 GitHub Pages 子目录部署。
-const WASM_BASE = `${import.meta.env.BASE_URL}mediapipe-wasm`
+// 模型文件本地托管（npm 包不含 .task，故始终用本地副本，已随构建发布到 /models）。
 const MODEL_URL = `${import.meta.env.BASE_URL}models/hand_landmarker.task`
-// CDN 兜底：若本地资源缺失则回退到公网
-const WASM_BASE_FALLBACK =
+// WASM 运行时：优先 jsdelivr CDN（MIME 正确、稳定），本地副本作为离线兜底。
+const WASM_BASE_CDN =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm'
-const MODEL_URL_FALLBACK =
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/models/hand_landmarker.task'
+const WASM_BASE_LOCAL = `${import.meta.env.BASE_URL}mediapipe-wasm`
 
 export type HandFrame = {
   present: boolean
@@ -50,23 +47,48 @@ async function tryCreate(
   })
 }
 
+// 给单次加载尝试套上超时：若 WASM/模型在限定时间内没加载成功（卡住不报错），
+// 主动判失败以触发下一套兜底方案，避免 UI 永远停在“加载中”。
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} 加载超时(${ms}ms)`)), ms)
+    p.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
+}
+
 export async function loadGestureModel(): Promise<HandLandmarker> {
   if (landmarker) return landmarker
-  // 依次尝试：本地GPU → 本地CPU → CDN GPU → CDN CPU，任何一步成功即返回
-  const attempts: Array<[string, string, 'GPU' | 'CPU']> = [
-    [WASM_BASE, MODEL_URL, 'GPU'],
-    [WASM_BASE, MODEL_URL, 'CPU'],
-    [WASM_BASE_FALLBACK, MODEL_URL_FALLBACK, 'GPU'],
-    [WASM_BASE_FALLBACK, MODEL_URL_FALLBACK, 'CPU'],
+  // 模型始终走本地；WASM 优先 CDN（MIME 可靠）→ 本地兜底。
+  // 每套方案带超时，任一步卡住即快速降级，保证不会永远停在“加载中”。
+  const attempts: Array<[string, 'GPU' | 'CPU', number]> = [
+    [WASM_BASE_CDN, 'GPU', 12000],
+    [WASM_BASE_CDN, 'CPU', 12000],
+    [WASM_BASE_LOCAL, 'GPU', 15000],
+    [WASM_BASE_LOCAL, 'CPU', 15000],
   ]
   let lastErr: unknown = null
-  for (const [wasm, model, delegate] of attempts) {
+  for (const [wasm, delegate, timeout] of attempts) {
+    const where = wasm.includes('http') ? 'CDN' : '本地'
     try {
-      landmarker = await tryCreate(wasm, model, delegate)
+      landmarker = await withTimeout(
+        tryCreate(wasm, MODEL_URL, delegate),
+        timeout,
+        `手势模型(${where}/${delegate})`,
+      )
+      console.info(`✓ 手势模型加载成功（WASM=${where}, ${delegate}）`)
       return landmarker
     } catch (err) {
       lastErr = err
-      console.warn(`手势模型加载失败（wasm=${wasm.includes('http') ? 'CDN' : '本地'}, ${delegate}），尝试下一方案`, err)
+      console.warn(`手势模型加载失败（WASM=${where}, ${delegate}），尝试下一方案`, err)
     }
   }
   throw lastErr ?? new Error('手势识别模型加载失败')
