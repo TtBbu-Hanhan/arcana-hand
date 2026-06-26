@@ -2,6 +2,11 @@ node_modules
 dist
 dist-ssr
 *.local
+# 环境变量文件（含 API Key，严禁提交）
+.env
+.env.*
+!.env.example
+.vercel
 .DS_Store
 .vscode/*
 !.vscode/extensions.json

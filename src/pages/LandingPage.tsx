@@ -4,6 +4,7 @@ import { StarWheel } from '../components/StarWheel'
 import { RitualButton } from '../components/RitualButton'
 import { TarotCardView } from '../components/TarotCard'
 import { TAROT_DECK } from '../data/tarotDeck'
+import { audioManager } from '../utils/audioManager'
 
 // 页面一：首页（文档 §6.1）
 export function LandingPage() {
@@ -58,8 +59,8 @@ export function LandingPage() {
         </p>
 
         <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
-          <RitualButton onClick={() => goToQuestion('QUESTION_INPUT')}>开始占卜</RitualButton>
-          <RitualButton variant="ghost" onClick={() => setShowHelp(true)}>
+          <RitualButton onClick={() => { audioManager.unlock(); audioManager.playBGM(); goToQuestion('QUESTION_INPUT') }}>开始占卜</RitualButton>
+          <RitualButton variant="ghost" onClick={() => { audioManager.unlock(); setShowHelp(true) }}>
             查看操作方式
           </RitualButton>
         </div>
@@ -93,7 +94,7 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
           <li>5. 三张牌依次放入「现状 / 阻碍 / 建议」，仪式翻牌后获得解读。</li>
         </ol>
         <div className="mt-7 text-center">
-          <RitualButton onClick={onClose}>我明白了</RitualButton>
+          <RitualButton onClick={() => { audioManager.unlock(); onClose() }}>我明白了</RitualButton>
         </div>
       </div>
     </div>

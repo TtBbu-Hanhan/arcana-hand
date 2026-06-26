@@ -6,11 +6,15 @@ import {
 } from '@mediapipe/tasks-vision'
 import { isOpenPalm, isPinching, pinchPoint, palmCenter } from './gestureUtils'
 
-// 通过 CDN 加载 WASM 与模型（MVP 阶段省去本地托管模型文件）
-const WASM_BASE =
+// 本地托管 WASM 与模型，避免依赖 storage.googleapis.com / CDN（国内网络常被阻断）。
+// 用 BASE_URL 前缀以适配 GitHub Pages 子目录部署。
+const WASM_BASE = `${import.meta.env.BASE_URL}mediapipe-wasm`
+const MODEL_URL = `${import.meta.env.BASE_URL}models/hand_landmarker.task`
+// CDN 兜底：若本地资源缺失则回退到公网
+const WASM_BASE_FALLBACK =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm'
-const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
+const MODEL_URL_FALLBACK =
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/models/hand_landmarker.task'
 
 export type HandFrame = {
   present: boolean
@@ -32,15 +36,40 @@ export const EMPTY_FRAME: HandFrame = {
 
 let landmarker: HandLandmarker | null = null
 
-export async function loadGestureModel(): Promise<HandLandmarker> {
-  if (landmarker) return landmarker
-  const vision = await FilesetResolver.forVisionTasks(WASM_BASE)
-  landmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+// 尝试用给定的 wasm/model 与 delegate 创建识别器
+async function tryCreate(
+  wasmBase: string,
+  modelUrl: string,
+  delegate: 'GPU' | 'CPU',
+): Promise<HandLandmarker> {
+  const vision = await FilesetResolver.forVisionTasks(wasmBase)
+  return HandLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: modelUrl, delegate },
     runningMode: 'VIDEO',
     numHands: 1,
   })
-  return landmarker
+}
+
+export async function loadGestureModel(): Promise<HandLandmarker> {
+  if (landmarker) return landmarker
+  // 依次尝试：本地GPU → 本地CPU → CDN GPU → CDN CPU，任何一步成功即返回
+  const attempts: Array<[string, string, 'GPU' | 'CPU']> = [
+    [WASM_BASE, MODEL_URL, 'GPU'],
+    [WASM_BASE, MODEL_URL, 'CPU'],
+    [WASM_BASE_FALLBACK, MODEL_URL_FALLBACK, 'GPU'],
+    [WASM_BASE_FALLBACK, MODEL_URL_FALLBACK, 'CPU'],
+  ]
+  let lastErr: unknown = null
+  for (const [wasm, model, delegate] of attempts) {
+    try {
+      landmarker = await tryCreate(wasm, model, delegate)
+      return landmarker
+    } catch (err) {
+      lastErr = err
+      console.warn(`手势模型加载失败（wasm=${wasm.includes('http') ? 'CDN' : '本地'}, ${delegate}），尝试下一方案`, err)
+    }
+  }
+  throw lastErr ?? new Error('手势识别模型加载失败')
 }
 
 // 持续检测循环。回调每帧收到一个 HandFrame。返回 stop 函数。

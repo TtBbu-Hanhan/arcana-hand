@@ -17,6 +17,7 @@ export type DeckSlot = {
 
 const POSITION_ORDER: SpreadPosition[] = ['situation', 'obstacle', 'advice']
 
+// 洗一副 78 张的完整牌组，返回带原始索引的牌位
 function shuffleDeck(): DeckSlot[] {
   const arr = TAROT_DECK.map((c, i) => ({ deckIndex: i, id: c.id }))
   for (let i = arr.length - 1; i > 0; i--) {
@@ -24,6 +25,12 @@ function shuffleDeck(): DeckSlot[] {
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
   return arr
+}
+
+// V0.2：把洗好的 78 张牌切成三堆，每堆 26 张
+function buildPiles(): DeckSlot[][] {
+  const full = shuffleDeck()
+  return [full.slice(0, 26), full.slice(26, 52), full.slice(52, 78)]
 }
 
 function randomOrientation(): Orientation {
@@ -37,6 +44,8 @@ type ArcanaState = {
   cameraError: string | null
   shuffleCount: number
   deck: DeckSlot[]
+  piles: DeckSlot[][] // V0.2：三堆切牌，每堆 26 张
+  selectedPileIndex: number | null // V0.2：用户选中的牌堆下标
   drawn: DrawnCard[]
   result: ReadingResult | null
   isGenerating: boolean
@@ -48,10 +57,14 @@ type ArcanaState = {
   setCameraError: (msg: string | null) => void
   finishCalibration: () => void
   registerShuffleSwipe: () => void
+  choosePile: (pileIndex: number) => void // V0.2：确认选择某一堆
   drawCardToCurrentSlot: (deckIndex: number) => Orientation | null
   startRitual: () => void
   startReveal: () => void
   finishReveal: () => Promise<void>
+  goToCardReadings: () => void // V0.2：进入单牌解读页
+  goToAiSummary: () => void // V0.2：右滑进入综合解读页
+  backToCardReadings: () => void // V0.2：左滑返回单牌解读页
   goToResult: () => void
   reset: () => void
   jumpTo: (phase: Phase) => void
@@ -66,6 +79,8 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
   cameraError: null,
   shuffleCount: 0,
   deck: shuffleDeck(),
+  piles: [],
+  selectedPileIndex: null,
   drawn: [],
   result: null,
   isGenerating: false,
@@ -88,10 +103,29 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
     if (phase !== 'SHUFFLING') return
     const next = shuffleCount + 1
     if (next >= SHUFFLE_TARGET) {
-      set({ shuffleCount: SHUFFLE_TARGET, deck: shuffleDeck(), phase: 'DRAW_CARD_1' })
+      // V0.2：洗牌完成后不再直接抽牌，而是切成三堆进入选堆阶段
+      set({ shuffleCount: SHUFFLE_TARGET, piles: buildPiles(), phase: 'CUT_DECK' })
     } else {
       set({ shuffleCount: next, deck: shuffleDeck() })
     }
+  },
+
+  // V0.2：确认选择某一牌堆，将该堆摊开作为抽牌牌阵
+  choosePile: (pileIndex) => {
+    const { phase, piles } = get()
+    if (phase !== 'CUT_DECK' && phase !== 'CHOOSE_PILE') return
+    const pile = piles[pileIndex]
+    if (!pile) return
+    set({
+      selectedPileIndex: pileIndex,
+      deck: pile, // 选中堆成为后续抽牌的牌阵
+      phase: 'SPREAD_SELECTED_PILE',
+    })
+    // 短暂的摊牌过渡后进入抽第一张
+    setTimeout(() => {
+      const { phase: p } = get()
+      if (p === 'SPREAD_SELECTED_PILE') set({ phase: 'DRAW_CARD_1' })
+    }, 900)
   },
 
   drawCardToCurrentSlot: (deckIndex) => {
@@ -127,82 +161,71 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
   startRitual: () => set({ phase: 'RITUAL_PAUSE' }),
   startReveal: () => set({ phase: 'REVEALING' }),
 
-  // 🔮 完美修正版：对齐环境判定与变量引用，保证线上百分之百编译成功
+  // V0.2：通过同域 Serverless 代理调用 DeepSeek 官方 API 生成综合解读。
+  // 代理隐藏 API Key 且与前端同域，彻底规避浏览器 CORS 限制。
   finishReveal: async () => {
     const { question, drawn } = get()
     set({ isGenerating: true, phase: 'READING' })
 
     try {
-      const cardsText = drawn.map(d => {
-        const pos = d.position === 'situation' ? '【现状】' : d.position === 'obstacle' ? '【阻碍】' : '【建议】'
-        return `${pos}: ${d.cardId} (${d.orientation === 'upright' ? '正位' : '逆位'})`
-      }).join('\n')
-
-      // ⚠️ 终极真理回归：既然灵眸官方支持跨域直连，我们本地走代理，线上走100%纯净的官方直连，且删掉所有干扰Headers
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const apiUrl = isLocal ? '/lmu-api/v1/chat/completions' : 'https://api.lmuai.com/v1/chat/completions'
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // ⚠️ 线上直连时，这里只会安全读取你在 GitHub Secrets 里配置的 VITE_AI_API_KEY
-          'Authorization': `Bearer ${import.meta.env.VITE_AI_API_KEY}`
-          // ❌ 严禁在这里加任何 X-Requested-With 或是其他不规范的请求头，防止触发灵眸的安全拦截！
-        },
-        body: JSON.stringify({
-          model: 'deepseek-v4-flash',
-          response_format: { type: "json_object" }, 
-          messages: [
-            {
-              role: 'system',
-              content: `你是一位隐居于星空深处的灵视塔罗占卜师。你精通神秘学与古典塔罗牌意。
-              你的说话风格神秘、优雅、充满仪式感，善于运用富有哲理和疗愈感的词汇（如：星辰的轨迹、能量的流动、命运的低语）。
-              
-              核心要求：
-              在接下来的回答中，你必须化身为这位占卜师，直接与屏幕前的求问者对话。
-              你的【summary（综合解读）】的第一句话，必须直接提及并正面回应求问者提出的具体问题（例如：“关于你所祈问的『...』，星盘的能量已经凝聚...”），严禁使用死板的牌意拼接套话！你要把三张牌作为一个整体的故事，来解答他这个核心问题。
-              
-              请严格按照以下 JSON 格式回复，不要包含任何多余的解释文字：
-              {
-                "summary": "这里填写你对这位求问者问题的专属深度综合解答，字数在300字左右，必须充满神秘占卜师一针见写又富有疗愈感的对话语气...",
-                "finalAdvice": "这里填写你针对他的问题，给他的具体行动指引与避坑建议..."
-              }`
-            },
-            {
-              role: 'user',
-              content: `求问者的问题："${question || '未明确具体提问，求问近期综合启示'}"\n\n抽出的牌阵数据：\n${cardsText}`
-            }
-          ]
-        })
+      // 整理牌阵数据（携带中文牌名，提升解读质量）
+      const cards = drawn.map((d) => {
+        const card = TAROT_DECK.find((c) => c.id === d.cardId)
+        return {
+          position: d.position,
+          nameZh: card?.nameZh ?? '',
+          nameEn: card?.nameEn ?? d.cardId,
+          orientation: d.orientation,
+        }
       })
 
-      if (!response.ok) throw new Error('灵眸通道请求未成功')
+      const response = await fetch('/api/reading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, cards }),
+      })
 
-      const data = await response.json()
-      const aiResult = JSON.parse(data.choices[0].message.content)
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(`解读代理返回错误 (HTTP ${response.status}) ${errBody?.error ?? ''}`)
+      }
 
-      set({ 
+      const aiResult = await response.json()
+      if (!aiResult.summary || !aiResult.finalAdvice) {
+        throw new Error('解读代理返回缺少 summary / finalAdvice 字段')
+      }
+
+      console.info('🔮 AI 解读已生成', { summaryLen: aiResult.summary.length })
+      set({
         result: {
           question,
           spread: 'situation_obstacle_advice',
           cards: drawn,
           summary: aiResult.summary,
           finalAdvice: aiResult.finalAdvice
-        }, 
-        phase: 'RESULT',
+        },
+        phase: 'CARD_READINGS',
         isGenerating: false
       })
 
     } catch (error) {
       console.error("💡 灵视连接意外中断，正在为您激活本地数据兜底保护:", error)
       const fallback = buildReading(question, drawn)
-      set({ 
-        result: fallback, 
-        phase: 'RESULT',
-        isGenerating: false 
+      set({
+        result: fallback,
+        phase: 'CARD_READINGS',
+        isGenerating: false
       })
     }
+  },
+
+  // V0.2：双页解读导航
+  goToCardReadings: () => set({ phase: 'CARD_READINGS' }),
+  goToAiSummary: () => {
+    if (get().phase === 'CARD_READINGS') set({ phase: 'AI_SUMMARY' })
+  },
+  backToCardReadings: () => {
+    if (get().phase === 'AI_SUMMARY') set({ phase: 'CARD_READINGS' })
   },
 
   goToResult: () => set({ phase: 'RESULT' }),
@@ -214,6 +237,8 @@ export const useArcanaStore = create<ArcanaState>((set, get) => ({
       cameraError: null,
       shuffleCount: 0,
       deck: shuffleDeck(),
+      piles: [],
+      selectedPileIndex: null,
       drawn: [],
       result: null,
       isGenerating: false,

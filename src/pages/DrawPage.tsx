@@ -8,6 +8,7 @@ import { CameraPreview } from '../components/CameraPreview'
 import { HandCursor } from '../components/HandCursor'
 import { SPREAD_SLOTS } from '../data/tarotDeck'
 import { getCard } from '../modules/tarot/readingService'
+import { audioManager } from '../utils/audioManager'
 
 const HOVER_PX = 110 // 靠近判定半径
 const HOLD_MS = 300 // 捏合保持 0.3s 才算有效选中
@@ -115,7 +116,10 @@ export function DrawPage() {
           dropping.current = true
           if (over) {
             const slot = deck.find((d) => d.id === sel)
-            if (slot) drawCard(slot.deckIndex)
+            if (slot) {
+              drawCard(slot.deckIndex)
+              audioManager.play('card-place')
+            }
           } else {
             // 放错位置：返回原位
             setReturning(true)
@@ -155,6 +159,7 @@ export function DrawPage() {
           }
           if (held >= HOLD_MS) {
             setSelectedId(nearest)
+            audioManager.play('card-pick')
             holdStart.current = null
             if (progressEl.current) progressEl.current.style.opacity = '0'
           }
@@ -203,14 +208,20 @@ export function DrawPage() {
         <p className="mt-2 text-sm text-grey-purple">{promptText}</p>
       </div>
 
-      {/* 中间弧形卡牌阵列 */}
+      {/* 中间弧形卡牌阵列（V0.2：26 张牌的重叠扇形，中央大、两侧小并旋转） */}
       <div className="relative flex h-[300px] w-full items-center justify-center">
         {available.map((slot, i) => {
-          const mid = (available.length - 1) / 2
+          const n = available.length
+          const mid = (n - 1) / 2
           const offset = i - mid
-          const angle = offset * 5.2
-          const x = offset * 50
-          const y = Math.abs(offset) * 7
+          // 扇形随牌数自适应收紧间距，保证 26 张也能重叠铺开而不溢出
+          const spacing = Math.min(50, 760 / Math.max(1, n))
+          const angle = offset * 4.2
+          const x = offset * spacing
+          const y = Math.abs(offset) * 6
+          // 越靠中央的牌越大、越清晰
+          const centerNorm = 1 - Math.min(1, Math.abs(offset) / (mid || 1))
+          const scale = 0.82 + centerNorm * 0.18
           const isHover = hoveredId === slot.id && !selectedId
           const isSel = selectedId === slot.id
           return (
@@ -219,7 +230,7 @@ export function DrawPage() {
               ref={setCardEl(slot.id)}
               className="absolute transition-[opacity]"
               style={{
-                transform: `translateX(${x}px) translateY(${y}px) rotate(${angle}deg)`,
+                transform: `translateX(${x}px) translateY(${y}px) rotate(${angle}deg) scale(${scale})`,
                 zIndex: isHover ? 100 : i,
                 opacity: isSel ? 0 : 1,
               }}

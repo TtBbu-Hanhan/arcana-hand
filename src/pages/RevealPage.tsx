@@ -4,6 +4,7 @@ import { StarWheel } from '../components/StarWheel'
 import { TarotCardView } from '../components/TarotCard'
 import { CardSlot } from '../components/CardSlot'
 import { SPREAD_SLOTS, TAROT_DECK } from '../data/tarotDeck' // 👈 核心修复：引入 TAROT_DECK 作为硬核数据保障
+import { audioManager } from '../utils/audioManager'
 
 // 页面七：仪式停顿 + 翻牌（文档 §7.2 / §6.6）
 export function RevealPage() {
@@ -34,9 +35,9 @@ export function RevealPage() {
   useEffect(() => {
     if (phase !== 'REVEALING') return
     const timers: number[] = []
-    timers.push(window.setTimeout(() => setFlipped(0), 200))
-    timers.push(window.setTimeout(() => setFlipped(1), 1100))
-    timers.push(window.setTimeout(() => setFlipped(2), 2000))
+    timers.push(window.setTimeout(() => { setFlipped(0); audioManager.play('card-flip') }, 200))
+    timers.push(window.setTimeout(() => { setFlipped(1); audioManager.play('card-flip') }, 1100))
+    timers.push(window.setTimeout(() => { setFlipped(2); audioManager.play('card-flip') }, 2000))
     timers.push(window.setTimeout(() => finishReveal(), 3400))
     return () => timers.forEach(clearTimeout)
   }, [phase, finishReveal])
